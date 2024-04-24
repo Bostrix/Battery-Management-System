@@ -14,10 +14,20 @@ float estimateSoC(float SoC_prev, float I, float Qn, float dt) {
 
 int main() {
     // Define parameters
-    float SoC_prev = 80.0; // Previous SoC (%)
-    float I = -10.0;       // Discharging current (A)
-    float Qn = 100.0;      // Battery capacity (Ah)
-    float dt = 1.0;        // Time step (hours)
+    float SoC_prev, I, Qn, dt;
+
+    // Get parameters from user input
+    printf("Enter Previous SoC (%%): ");
+    scanf("%f", &SoC_prev);
+
+    printf("Enter Discharging current (A): ");
+    scanf("%f", &I);
+
+    printf("Enter Battery capacity (Ah): ");
+    scanf("%f", &Qn);
+
+    printf("Enter Time step (hours): ");
+    scanf("%f", &dt);
 
     // Estimate SoC
     float SoC = estimateSoC(SoC_prev, I, Qn, dt);
@@ -27,3 +37,4 @@ int main() {
 
     return 0;
 }
+
