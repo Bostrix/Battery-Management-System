@@ -20,10 +20,20 @@ float calculateSOC(float SOC_prev, float I, float Q, float dt) {
 
 int main() {
     // Parameters
-    float SOC_prev = 50.0;  // Previous SOC (%)
-    float I = -5.0;         // Charging or discharging current (A), negative for discharge
-    float Q = 100.0;        // Battery cell capacity (Ah)
-    float dt = 1.0;         // Time step (hours)
+    float SOC_prev, I, Q, dt;
+
+    // Input from the user
+    printf("Enter previous SOC: ");
+    scanf("%f", &SOC_prev);
+
+    printf("Enter charging or discharging current (A): ");
+    scanf("%f", &I);
+
+    printf("Enter battery cell capacity (Ah): ");
+    scanf("%f", &Q);
+
+    printf("Enter time step (hours): ");
+    scanf("%f", &dt);
 
     // Calculate SOC
     float SOC = calculateSOC(SOC_prev, I, Q, dt);
