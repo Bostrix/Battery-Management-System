@@ -35,7 +35,7 @@ int main() {
     double P_estimation = 1; // Initial covariance estimate
 
     // Simulated input (voltage measurement)
-    vec measurements = {0.5, 0.6, 0.7, 0.8, 0.9}; // Simulated voltage measurements
+    vec measurements = {0.5, 0.7, 0.9, 0.10, 0.12}; // Simulated voltage measurements
 
     // Simulate Kalman filter operation
     for (int i = 0; i < measurements.n_elem; ++i) {
