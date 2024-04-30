@@ -3,34 +3,35 @@
 #include <math.h>
 #include <time.h>
 #include <unistd.h> // for usleep()
+#include <stdbool.h> // for boolean type
 
 // Battery parameters
 #define CAPACITY_MAH 2600
-#define VOLTAGE_FULL 4.2
-#define VOLTAGE_EMPTY 2.5
-#define CURRENT_LEAK 0.1
-#define TEMPERATURE_FACTOR 0.02
-
-// Simulation parameters
-#define TIME_STEP 0.002 // 2 ms
+#define VOLTAGE_FULL 4.2f
+#define VOLTAGE_EMPTY 2.5f
+#define CURRENT_LEAK 0.1f
+#define TEMPERATURE_FACTOR 0.02f
+#define CHARGING_EFFICIENCY 0.95f // Charging efficiency (e.g., 95%)
+#define DISCHARGING_EFFICIENCY 0.98f // Discharging efficiency (e.g., 98%)
+#define TIME_STEP 0.002f // 2 ms
 
 // Struct for battery state
 typedef struct {
-    double capacity_mah;
-    double voltage_full;
-    double voltage_empty;
-    double current_leak;
-    double current;
-    double voltage;
-    double temperature;
-    double soc;
-    double remaining_capacity;
-    double time;
-    int dead;
+    float capacity_mah;
+    float voltage_full;
+    float voltage_empty;
+    float current_leak;
+    float current;
+    float voltage;
+    float temperature;
+    float soc;
+    float remaining_capacity;
+    float time;
+    bool dead; // changed from int to bool
 } Batt;
 
 // Initialize battery state
-void batteryInitialize(Batt *b, double capacity_mah, double voltage_full, double voltage_empty, double current_leak) {
+void batteryInitialize(Batt *b, float capacity_mah, float voltage_full, float voltage_empty, float current_leak) {
     b->capacity_mah = capacity_mah;
     b->voltage_full = voltage_full;
     b->voltage_empty = voltage_empty;
@@ -38,38 +39,41 @@ void batteryInitialize(Batt *b, double capacity_mah, double voltage_full, double
     b->current = 0;
     b->voltage = voltage_full;
     b->temperature = 25; // Initialize temperature to a default value
-    b->soc = 1.0;
+    b->soc = 1.0f;
     b->remaining_capacity = capacity_mah;
     b->time = 0;
-    b->dead = 0;
+    b->dead = false; // initialize dead as false
 }
 
 // Update battery state based on current and time
-void batteryUpdate(Batt *b, double current, double time_step) {
+void batteryUpdate(Batt *b, float current, float time_step) {
     b->current = current;
     b->time += time_step;
-    b->remaining_capacity -= current * time_step;
-    b->soc = b->remaining_capacity / b->capacity_mah;
-    if (b->soc > 1.0) { // Ensure SoC doesn't exceed 100%
-        b->soc = 1.0;
-        b->remaining_capacity = b->capacity_mah;
-    }
-    b->voltage = b->voltage_full * pow(b->soc, 1.2) + b->current * b->temperature * TEMPERATURE_FACTOR;
-    if (b->voltage <= b->voltage_empty) {
-        b->dead = 1;
-    }
-}
 
-// Estimate state of charge using Coulomb Counting
-double coulombCounting(Batt *b) {
-    double delta_capacity = b->current * TIME_STEP;
-    b->remaining_capacity -= delta_capacity;
-    b->soc = b->remaining_capacity / b->capacity_mah;
-    if (b->soc > 1.0) { // Ensure SoC doesn't exceed 100%
-        b->soc = 1.0;
-        b->remaining_capacity = b->capacity_mah;
+    float absolute_current = fabs(current);
+    float efficiency = (current > 0) ? CHARGING_EFFICIENCY : DISCHARGING_EFFICIENCY;
+
+    // Coulomb Counting method for estimating SoC
+    float delta_capacity = absolute_current * time_step * efficiency;
+    if (current > 0) {
+        // Charging
+        b->remaining_capacity += delta_capacity;
+        if (b->remaining_capacity > b->capacity_mah) {
+            b->remaining_capacity = b->capacity_mah;
+        }
+    } else {
+        // Discharging
+        b->remaining_capacity -= delta_capacity;
+        if (b->remaining_capacity < 0) {
+            b->remaining_capacity = 0;
+        }
     }
-    return b->soc;
+    b->soc = b->remaining_capacity / b->capacity_mah;
+
+    b->voltage = b->voltage_full * powf(b->soc, 1.2f) + absolute_current * b->temperature * TEMPERATURE_FACTOR;
+    if (b->voltage <= b->voltage_empty) {
+        b->dead = true;
+    }
 }
 
 int main() {
@@ -80,35 +84,48 @@ int main() {
     batteryInitialize(&battery, CAPACITY_MAH, VOLTAGE_FULL, VOLTAGE_EMPTY, CURRENT_LEAK);
 
     // input parameters
-    double voltage, temperature;
+    float voltage, temperature;
 
     // prompt user to enter voltage and temperature once
     printf("Enter voltage (V): ");
-    scanf("%lf", &voltage);
+    scanf("%f", &voltage);
     printf("Enter temperature (°C): ");
-    scanf("%lf", &temperature);
+    scanf("%f",&temperature);
 
-    // run simulation continuously until interrupted
-    while (1) {
-        // generate random current
-        double current = (((double)rand() / RAND_MAX) * 10.0) - 5.0; // random current between -5 and 5 A
+    // cycle counter
+    int cycles = 0;
+
+    // run simulation continuously until interrupted or desired number of cycles is reached
+    while (cycles < 10000) {
+        float current;
+        if (cycles < 5000) {
+            // Discharging
+            current = -((float)rand() / RAND_MAX) * 5.0f;
+        } else {
+            // Charging
+            current = ((float)rand() / RAND_MAX) * 5.0f;
+        }
 
         // update battery state
         batteryUpdate(&battery, current, TIME_STEP);
+
+        // set temperature
         battery.temperature = temperature;
 
-        // estimate state of charge
-        double soc = coulombCounting(&battery);
-
-        // print current, time, and estimated state of charge
+        // print current and time
         printf("Current (A): %.2f\n", current);
         printf("Time (s): %.2f\n", battery.time);
-        printf("Estimated state of charge: %.2f%%\n", soc * 100);
         printf("\n");
+
+        // increment cycle counter
+        cycles++;
 
         // sleep for 2 milliseconds
         usleep(TIME_STEP * 1000000);
     }
+
+    // print estimated SoC at the end of the simulation
+    printf("Estimated state of charge: %.2f%%\n", battery.soc * 100);
 
     return 0;
 }
