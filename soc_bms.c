@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+//#include <unistd.h> // For sleep()
 
 // Structure to hold battery parameters and state
 struct Battery {
@@ -45,10 +46,36 @@ void estimateSoC(struct Battery *b, float dt) {
         b->soc = 100;
 }
 
+// Function to convert time input to milliseconds
+int convertToMilliseconds(int time, char unit) {
+    switch (unit) {
+        case 'h': // hours
+            return time * 3600000;
+        case 'm': // minutes
+            return time * 60000;
+        case 's': // seconds
+            return time * 1000;
+        default: // milliseconds
+            return time;
+    }
+}
+
 int main() {
     // Constants
     float capacity = 500.0; // Battery capacity in mAh
     float dt = 2.0; // Time step in milliseconds
+
+    // User input for simulation time
+    int simulationTime;
+    char unit;
+    printf("Enter simulation time and unit (s/m/h): ");
+    scanf("%d %c", &simulationTime, &unit);
+
+    // Convert simulation time to milliseconds
+    int milliseconds = convertToMilliseconds(simulationTime, unit);
+
+    // Calculate number of iterations based on simulation time and time step
+    int iterations = milliseconds / dt;
 
     // Create and initialize battery
     struct Battery b;
@@ -57,13 +84,22 @@ int main() {
     // Seed for random number generator (only once)
     srand(time(NULL));
 
-    // Simulate running for 15 minutes
-    for (int i = 0; i < 4500; i++) { // 15 minutes * 60 seconds / 2 ms = 4500 iterations
-        // Randomly generate current
-        float current = (((float)rand() / RAND_MAX) * 6.0) - 3.0; // Random current between -3 A and 3 A
-
+    // Simulate running for the specified time
+    for (int i = 0; i < iterations; i++) {
+        // Determine whether to discharge or charge
+        float current;
+        if (i < iterations/2) { // First half of simulation: discharging
+            current = (((float)rand() / RAND_MAX) * -3.0) - 1.0; // Random current between -1 A and -4 A (discharging)
+        } else if (i >= iterations - 100) { // Last 100 iterations: charging
+        current = (((float)rand() / RAND_MAX) * 3.0) + 1.0; // Random current between 1 A and 4 A (charging)
+    } else { // Second half of simulation (excluding last 10 iterations): no current flow
+        current = 0.0; // No current flow
+    }
         // Calculate time
         float time = (i + 1) * dt; // Time in milliseconds
+
+        // Print current, time, and SoC
+        printf("Iteration %d - Current: %.2f mA, Time: %.2f ms, SoC: %.2f%%\n", i+1, current, time, b.soc);
 
         // Calculate voltage (example: linear decrease based on current)
         float voltage = b.voltage_V - current * 0.01; // Linear decrease of 0.01 V for each A of current
@@ -73,10 +109,13 @@ int main() {
 
         // Estimate SoC
         estimateSoC(&b, dt);
+
+        // Sleep for 1 second (1000 milliseconds)
+      //  sleep(1);
     }
 
-    // Print estimated SoC after 15 minutes
-    printf("Estimated SoC after 15 minutes: %.2f%%\n", b.soc);
+    // Print estimated SoC after the specified time
+    printf("Estimated SoC after %d %c: %.2f%%\n", simulationTime, unit, b.soc);
 
     return 0;
 }
