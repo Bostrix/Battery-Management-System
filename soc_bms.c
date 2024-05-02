@@ -13,36 +13,36 @@ struct Battery {
 };
 
 // Function to initialize the battery with initial parameters
-void initializeBattery(struct Battery *battery, float capacity, float initialVoltage, float initialSoC) {
-    battery->capacity_mAh = capacity;
-    battery->voltage_V = initialVoltage;
-    battery->soc = initialSoC;
-    battery->current_mA = 0.0; // Default initial current is 0 mA
-    battery->temperature_C = 25.0; // Default initial temperature is 25 Celsius
-    battery->time_ms = 0.0; // Default initial time is 0 ms
+void initializeBattery(struct Battery *b, float capacity, float initialVoltage, float initialSoC) {
+    b->capacity_mAh = capacity;
+    b->voltage_V = initialVoltage;
+    b->soc = initialSoC;
+    b->current_mA = 0.0; // Default initial current is 0 mA
+    b->temperature_C = 25.0; // Default initial temperature is 25 Celsius
+    b->time_ms = 0.0; // Default initial time is 0 ms
 }
 
 // Function to update battery state
-void updateBattery(struct Battery *battery, float current, float voltage, float temperature, float time) {
-    battery->current_mA = current;
-    battery->voltage_V = voltage;
-    battery->temperature_C = temperature;
-    battery->time_ms = time;
+void updateBattery(struct Battery *b, float current, float voltage, float temperature, float time) {
+    b->current_mA = current;
+    b->voltage_V = voltage;
+    b->temperature_C = temperature;
+    b->time_ms = time;
 }
 
 // Function to estimate State of Charge (SoC) using Coulomb counting
-void estimateSoC(struct Battery *battery, float dt) {
+void estimateSoC(struct Battery *b, float dt) {
     // Calculate change in charge
-    float deltaQ = battery->current_mA * dt;
+    float deltaQ = b->current_mA * dt;
 
     // Update SoC
-    battery->soc += (deltaQ / battery->capacity_mAh) * 100.0;
+    b->soc += (deltaQ / b->capacity_mAh) * 100.0;
 
     // Ensure SoC is within 0 to 100%
-    if (battery->soc < 0)
-        battery->soc = 0;
-    else if (battery->soc > 100)
-        battery->soc = 100;
+    if (b->soc < 0)
+        b->soc = 0;
+    else if (b->soc > 100)
+        b->soc = 100;
 }
 
 int main() {
@@ -51,8 +51,8 @@ int main() {
     float dt = 2.0; // Time step in milliseconds
 
     // Create and initialize battery
-    struct Battery battery;
-    initializeBattery(&battery, capacity, 4.2, 50.0); // Initial voltage and SoC assumed
+    struct Battery b;
+    initializeBattery(&b, capacity, 4.2, 50.0); // Initial voltage and SoC assumed
 
     // Seed for random number generator (only once)
     srand(time(NULL));
@@ -66,17 +66,17 @@ int main() {
         float time = (i + 1) * dt; // Time in milliseconds
 
         // Calculate voltage (example: linear decrease based on current)
-        float voltage = battery.voltage_V - current * 0.01; // Linear decrease of 0.01 V for each A of current
+        float voltage = b.voltage_V - current * 0.01; // Linear decrease of 0.01 V for each A of current
 
         // Update battery state
-        updateBattery(&battery, current, voltage, 25.0, time);
+        updateBattery(&b, current, voltage, 25.0, time);
 
         // Estimate SoC
-        estimateSoC(&battery, dt);
+        estimateSoC(&b, dt);
     }
 
     // Print estimated SoC after 15 minutes
-    printf("Estimated SoC after 15 minutes: %.2f%%\n", battery.soc);
+    printf("Estimated SoC after 15 minutes: %.2f%%\n", b.soc);
 
     return 0;
 }
