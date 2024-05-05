@@ -31,20 +31,23 @@ void updateBattery(struct Battery *b, float current, float voltage, float temper
     b->time_ms = time;
 }
 
-// Function to estimate State of Charge (SoC) using Coulomb counting
 void estimateSoC(struct Battery *b, float dt) {
     // Calculate change in charge
     float deltaQ = b->current_mA * dt;
 
-    // Update SoC
-    b->soc += (deltaQ / b->capacity_mAh) * 100.0;
+    // Calculate new SoC
+    float newSoC = (b->soc + (deltaQ / b->capacity_mAh) * 100.0);
 
-    // Ensure SoC is within 0 to 100%
-    if (b->soc < 0)
-        b->soc = 0;
-    else if (b->soc > 100)
-        b->soc = 100;
+    // Limit SoC to 100%
+    b->soc = (newSoC > 100.0) ? 100.0 : newSoC;
+
+    // Ensure SoC doesn't go below 0%
+    if (b->soc < 0.0) {
+        b->soc = 0.0;
+    }
 }
+
+
 
 // Function to convert time input to milliseconds
 int convertToMilliseconds(int time, char unit) {
@@ -65,17 +68,23 @@ int main() {
     float capacity = 500.0; // Battery capacity in mAh
     float dt = 2.0; // Time step in milliseconds
 
-    // User input for simulation time
-    int simulationTime;
-    char unit;
-    printf("Enter simulation time and unit (s/m/h): ");
-    scanf("%d %c", &simulationTime, &unit);
+   // User input for simulation time
+int simulationTime;
+char unit;
+printf("Enter simulation time and unit (s/m/h): ");
+// Read simulation time and unit
+if (scanf("%d %c", &simulationTime, &unit) != 2 || (unit != 's' && unit != 'm' && unit != 'h')) {
+    printf("Invalid input. Please enter a valid simulation time and unit (s/m/h).\n");
+    return 1; // Exit program with error status
+}
 
-    // Convert simulation time to milliseconds
-    int milliseconds = convertToMilliseconds(simulationTime, unit);
+// Convert simulation time to milliseconds
+int milliseconds = convertToMilliseconds(simulationTime, unit);
 
-    // Calculate number of iterations based on simulation time and time step
-    int iterations = milliseconds / dt;
+// Calculate number of iterations based on simulation time and time step
+// Calculate number of iterations based on simulation time and time step
+int iterations = (milliseconds + dt - 1) / dt;
+
 
     // Create and initialize battery
     struct Battery b;
@@ -85,21 +94,39 @@ int main() {
     srand(time(NULL));
 
     // Simulate running for the specified time
-    for (int i = 0; i < iterations; i++) {
+        // Simulate running for the specified time
+    int i;
+    for (i = 0; i < iterations; i++) {
         // Determine whether to discharge or charge
-        float current;
-        if (i < iterations/2) { // First half of simulation: discharging
-            current = (((float)rand() / RAND_MAX) * -3.0) - 1.0; // Random current between -1 A and -4 A (discharging)
-        } else if (i >= iterations - 100) { // Last 100 iterations: charging
-        current = (((float)rand() / RAND_MAX) * 3.0) + 1.0; // Random current between 1 A and 4 A (charging)
-    } else { // Second half of simulation (excluding last 10 iterations): no current flow
-        current = 0.0; // No current flow
-    }
+        float current = 0.0; // Initialize current to 0.0
+        if (i < iterations / 2) { // First half of simulation: discharging
+            // Check if SoC is already at 0%, if yes, stop discharging
+            if (b.soc <= 0.0) {
+                current = 0.0; // No current flow
+            } else {
+                // Random current between -5 A and -2 A (discharging)
+                current = (((float)rand() / RAND_MAX) * -5.0) - 2.0;
+            }
+
+            // Check if battery is undercharged before switching off
+            if (b.soc < 10 && b.soc > 0) {
+                printf("Warning: Battery is low. Charge it before it switches off.\n");
+            }
+        } else { // Second half of simulation: charging
+            if (b.soc < 100.00) { // Charge only if SoC is below 100%
+// Adjust charging current range
+current = (((float)rand() / RAND_MAX) * 0.4) + 0.1; // Charging current between 0.1 A and 0.5 A
+
+                b.soc += current * (dt / 3600.0); // Update SoC based on charging current
+             
+            }
+        }
+
         // Calculate time
         float time = (i + 1) * dt; // Time in milliseconds
 
         // Print current, time, and SoC
-        printf("Iteration %d - Current: %.2f mA, Time: %.2f ms, SoC: %.2f%%\n", i+1, current, time, b.soc);
+        printf("Iteration %d - Current: %.2f mA, Time: %.2f ms, SoC: %.2f%%\n", i + 1, current, time, b.soc);
 
         // Calculate voltage (example: linear decrease based on current)
         float voltage = b.voltage_V - current * 0.01; // Linear decrease of 0.01 V for each A of current
@@ -111,12 +138,23 @@ int main() {
         estimateSoC(&b, dt);
 
         // Sleep for 1 second (1000 milliseconds)
-      //  sleep(1);
+        //  sleep(1);
     }
+
+    // If battery is fully charged, continue printing remaining iterations with time updated
+    if (b.soc >= 100.00) {
+        for (; i < iterations; i++) {
+            float time = (i + 1) * dt; // Update time
+            printf("Iteration %d - Current: 0.00 mA, Time: %.2f ms, SoC: %.2f%%\n", i + 1, time, b.soc);
+        }
+    }
+
 
     // Print estimated SoC after the specified time
     printf("Estimated SoC after %d %c: %.2f%%\n", simulationTime, unit, b.soc);
 
     return 0;
 }
+
+
 
