@@ -38,13 +38,12 @@ void estimateSoC(struct Battery *b, float dt) {
     // Calculate new SoC
     float newSoC = (b->soc + (deltaQ / b->capacity_mAh) * 100.0);
 
-    // Limit SoC to 100%
+    // Ensure SoC to 100%
     b->soc = (newSoC > 100.0) ? 100.0 : newSoC;
 
     // Ensure SoC doesn't go below 0%
-    if (b->soc < 0.0) {
-        b->soc = 0.0;
-    }
+ b->soc = (newSoC < 0.0) ? 0.0 : newSoC;
+
 }
 
 
@@ -104,8 +103,9 @@ int iterations = (milliseconds + dt - 1) / dt;
             if (b.soc <= 0.0) {
                 current = 0.0; // No current flow
             } else {
-                // Random current between -5 A and -2 A (discharging)
-                current = (((float)rand() / RAND_MAX) * -5.0) - 2.0;
+                // Random current between -3 A and -1 A (discharging)
+current = (((float)rand() / RAND_MAX) * -2.0) - 1.0;
+
             }
 
             // Check if battery is undercharged before switching off
