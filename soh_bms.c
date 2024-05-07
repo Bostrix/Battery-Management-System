@@ -4,7 +4,9 @@
 
 // Function to estimate state of health (SOH) based on cell capacity
 float estimate_SOH(float AH, float AH_new, float AH_eol) {
-    // Calculate the SOH using the provided formula
+
+
+    // Calculate the SOH using the capacity based formula
     float SOH = ((AH - AH_eol) / (AH_new - AH_eol)) * 100;
   // If SOH becomes negative, set SOH to 0.00
 SOH = (SOH < 0.0) ? 0.0 : SOH;
@@ -27,8 +29,8 @@ int main() {
     
     // Example values for initial cell capacity, new capacity, and end-of-life capacity
 
-    float AH_new = 27.0;    // New capacity (example value)
-    float AH_eol = 21.6;    // End-of-life capacity (example value)
+    float AH_new = 35.0;    // New capacity
+    float AH_eol = 25.0;    // End-of-life capacity 
 
  // Initialize the initial cell capacity to the new capacity
     float AH = AH_new;
@@ -38,6 +40,8 @@ int main() {
 
     // Initialize the initial State of Health (SOH) to 100%
     float SOH = 100.0;
+    
+ 
 
     // User input for simulation time in minutes
     int simulation_time_minutes;
@@ -48,14 +52,14 @@ int main() {
     int simulation_time_seconds = simulation_time_minutes * 60;
     
     // Example value for time increment (in seconds)
-    float time_increment = 5.0;  // Time increment (in seconds)
+    float time_increment = 30.0;  // Time increment (in seconds)
+    
     
     // Loop for simulation
     int elapsed_time_seconds = 0;
     while (elapsed_time_seconds < simulation_time_seconds && prev_capacity > AH_eol) {
-      // Generate a random current within the range of 0.5 A to 0.7 A
-float current = ((rand() % 201) + 500) / 1000.0;  // Random current between 0.5 A and 0.7 A
-
+       // Generate a random current within the range of 0.3 A to 0.5 A
+float current = ((rand() % 101) + 100) / 1000.0;  // Random current between 0.1 A and 0.3 A
         
         // Update cell capacity using Coulomb Counting
         AH = update_cell_capacity(prev_capacity, current, time_increment / 3600.0); // Convert time increment from seconds to hours
